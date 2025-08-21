@@ -11,7 +11,8 @@ REQUIRED = ["name","profile_type","summary","contacts","source_links","match_jus
 def save_candidates_csv(items: List[Dict[str, Any]]) -> str:
     rows = []
     for c in items:
-        row = {k: c.get(k) for k in REQUIRED}
+        row = {k: (c.get(k) or "") for k in REQUIRED}
+        # stringify lists
         row["contacts"] = ";".join(c.get("contacts") or [])
         row["source_links"] = ";".join(c.get("source_links") or [])
         rows.append(row)
