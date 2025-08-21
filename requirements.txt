@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+requests
+pydantic
+pandas
+streamlit
+httpx
+python-dotenv
+python-slugify
