@@ -4,3 +4,8 @@ __pycache__/
 .env
 node_modules/
 data/*.csv
+# Auggie / Augment local config (do not publish)
+.augment/
+pioneers.rules.md
+augment.settings.json
+augment.config.json
