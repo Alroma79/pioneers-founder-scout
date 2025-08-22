@@ -15,5 +15,6 @@ def score_candidate(person: Dict[str, Any], criteria: Dict[str, Any]) -> Dict[st
 
     score = max(0, min(100, score))
     person["score"] = score
-    person["tier"] = "A" if score >= 70 else "B" if score >= 50 else "C"
+    # Adjusted thresholds: A=80+, B=60+, C=<60 for more meaningful tiers
+    person["tier"] = "A" if score >= 80 else "B" if score >= 60 else "C"
     return person
