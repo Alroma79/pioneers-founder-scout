@@ -82,7 +82,7 @@ class HarvestClient:
                 r.raise_for_status()
                 data = r.json()
                 els = data.get("elements", [])
-                return els[0].get("geoId") if els else ""
+                return els[0].get("geoId", "") if els else ""
         except Exception as e:
             print("GeoID error:", repr(e))
             return ""
