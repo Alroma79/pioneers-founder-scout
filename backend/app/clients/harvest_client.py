@@ -61,7 +61,7 @@ class HarvestClient:
                 results = data.get("elements", [])[:limit]
                 print(f"Harvest returned {len(results)} results")
                 return results
-        except Exception as e:
+        except (httpx.HTTPStatusError, httpx.RequestError) as e:
             print(f"Harvest error: {repr(e)}")
             return []
 
