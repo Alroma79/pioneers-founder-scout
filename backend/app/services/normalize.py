@@ -13,7 +13,7 @@ def normalize_person(raw: Dict[str, Any]) -> Dict[str, Any]:
         linkedin = f"https://www.linkedin.com/in/{public_id}"
 
     profile_type = "technical" if any(
-        k in (headline or "").lower() for k in ["cto","engineer","developer","ml","ai","data","research"]
+        k in headline.lower() for k in ["cto","engineer","developer","ml","ai","data","research"]
     ) else "business"
 
     summary = (headline + (f" · {location}" if location else "")).strip() or "Experienced operator/founder."
