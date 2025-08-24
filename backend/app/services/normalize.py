@@ -10,7 +10,9 @@ def normalize_person(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     # Build a URL if linkedinUrl missing but publicIdentifier present
     if not linkedin and public_id:
-        linkedin = f"https://www.linkedin.com/in/{public_id}"
+        # Validate publicIdentifier format (basic check)
+        if public_id.replace('-', '').replace('_', '').isalnum():
+            linkedin = f"https://www.linkedin.com/in/{public_id}"
 
     profile_type = "technical" if any(
         k in headline.lower() for k in ["cto","engineer","developer","ml","ai","data","research"]

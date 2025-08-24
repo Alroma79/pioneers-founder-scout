@@ -1,7 +1,10 @@
 import os
+import logging
 from typing import List, Dict, Any
 import httpx
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -38,7 +41,7 @@ class HarvestClient:
         - geo_id: preferred Harvest geoId for precise location
         """
         if not HARVEST_API_KEY:
-            print("HARVEST_API_KEY missing")
+            logger.error("HARVEST_API_KEY missing")
             return []
 
         url = f"{HARVEST_BASE_URL}/linkedin/profile-search"
@@ -55,14 +58,18 @@ class HarvestClient:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.get(url, params=params, headers=self.headers)
-                print(f"Harvest status: {r.status_code}")
+                logger.debug(f"Harvest API response: {r.status_code}")
                 r.raise_for_status()
                 data = r.json()
                 results = data.get("elements", [])[:limit]
-                print(f"Harvest returned {len(results)} results")
+                logger.info(f"Harvest returned {len(results)} results", extra={
+                    'url': url, 'params': params, 'status': r.status_code
+                })
                 return results
         except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            print(f"Harvest error: {repr(e)}")
+            logger.error(f"Harvest API error", extra={
+                'url': url, 'params': params, 'error': str(e)
+            })
             return []
 
     async def lookup_geo_id(self, search: str) -> str:
@@ -78,11 +85,13 @@ class HarvestClient:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.get(url, params=params, headers=self.headers)
-                print(f"GeoID status: {r.status_code} for {search}")
+                logger.debug(f"GeoID lookup response: {r.status_code} for {search}")
                 r.raise_for_status()
                 data = r.json()
                 els = data.get("elements", [])
-                return els[0].get("geoId", "") if els else ""
+                geo_id = els[0].get("geoId", "") if els else ""
+                logger.info(f"GeoID lookup: '{search}' -> '{geo_id}'")
+                return geo_id
         except Exception as e:
-            print("GeoID error:", repr(e))
+            logger.error(f"GeoID lookup failed for '{search}'", extra={'error': str(e)})
             return ""

@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from .models import Criteria
 from .clients.harvest_client import HarvestClient
@@ -5,6 +6,13 @@ from .services.normalize import normalize_person
 from .services.scoring import score_candidate
 from .services.utils import dedupe              # NEW: for de-duplication
 from .storage.repository import save_candidates_csv
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Pioneers Founder Scout")
 
@@ -62,17 +70,27 @@ async def search(criteria: Criteria):
 
         # Step A: run initial attempts
         for a in attempts:
-            print(f"[Harvest Attempt] {a['label']} -> search='{a['search']}', title='{a['title']}', geoId='{a['geo_id']}'")
+            logger.info(f"Harvest attempt: {a['label']}", extra={
+                'search': a['search'], 'title': a['title'], 'geo_id': a['geo_id']
+            })
             kwargs = {k: v for k, v in a.items() if k in allowed}
             try:
                 raw = await harvest.search_people(**kwargs)
-                print(f"[Harvest Attempt] {a['label']} -> returned {len(raw)} results")
+                logger.info(f"Harvest attempt {a['label']} returned {len(raw)} results")
             except Exception as e:
-                print(f"[Harvest Attempt] {a['label']} -> ERROR: {repr(e)}")
+                logger.error(f"Harvest attempt {a['label']} failed", extra={
+                    'error': str(e), 'params': kwargs
+                })
                 raw = []
 
             if raw and used_attempt is None:
                 used_attempt = a["label"]
+
+            combined_raw.extend(raw)
+            combined_raw = dedupe(combined_raw)
+
+            if len(combined_raw) >= TARGET_RESULTS:
+                logger.info(f"Target reached with {len(combined_raw)} candidates")
 
             combined_raw.extend(raw)
             combined_raw = dedupe(combined_raw)
@@ -84,21 +102,37 @@ async def search(criteria: Criteria):
         for q in ROTATION_QUERIES:
             if len(combined_raw) >= TARGET_RESULTS:
                 break
-            print(f"[Harvest Rotation] search='{q}'")
+            logger.info(f"Harvest rotation query: '{q}'")
             try:
                 raw = await harvest.search_people(search=q, title="", geo_id="", location="", page=1, limit=30)
-                print(f"[Harvest Rotation] '{q}' -> {len(raw)} results")
+                logger.info(f"Rotation query '{q}' returned {len(raw)} results")
             except Exception as e:
-                print(f"[Harvest Rotation] '{q}' -> ERROR: {repr(e)}")
+                logger.error(f"Rotation query '{q}' failed", extra={'error': str(e)})
                 raw = []
 
             combined_raw.extend(raw)
             combined_raw = dedupe(combined_raw)
 
+        # Handle case where no results found
+        if not combined_raw:
+            logger.warning("No candidates found from any source")
+            return {
+                "count": 0,
+                "csv_path": None,
+                "items": [],
+                "geo_id_used": geo_id or None,
+                "attempt_used": used_attempt,
+                "rotations_used": ROTATION_QUERIES,
+                "message": "No candidates found. Try different search criteria."
+            }
+
         # Normalize, score, save
+        logger.info(f"Processing {len(combined_raw)} candidates")
         normalized = [normalize_person(p) for p in combined_raw]
         scored = [score_candidate(p, criteria.model_dump()) for p in normalized]
         csv_path = save_candidates_csv(scored)
+
+        logger.info(f"Saved {len(scored)} candidates to {csv_path}")
 
         return {
             "count": len(scored),
@@ -110,4 +144,5 @@ async def search(criteria: Criteria):
         }
 
     except Exception as e:
+        logger.error(f"Search failed", extra={'error': str(e), 'criteria': criteria.model_dump()})
         raise HTTPException(status_code=500, detail=f"/search failed: {repr(e)}")
