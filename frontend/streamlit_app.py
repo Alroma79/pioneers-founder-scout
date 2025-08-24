@@ -43,7 +43,7 @@ if not df.empty:
     with col1:
         st.metric("Total Candidates", len(df))
     with col2:
-        tier_a_count = len(df[df.get('tier', '') == 'A'])
+        tier_a_count = (df['tier'] == 'A').sum() if 'tier' in df.columns else 0
         st.metric("Tier A", tier_a_count)
     with col3:
         avg_score = df.get('score', pd.Series([0])).mean()
