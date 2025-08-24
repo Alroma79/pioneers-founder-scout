@@ -122,8 +122,7 @@ Candidates are scored (0-100) and tiered based on:
 
 Run the test suite:
 ```bash
-python -m pytest tests/ -v
-```
+python -m unittest discover -s tests -v
 
 Or run individual test files:
 ```bash
