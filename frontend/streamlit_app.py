@@ -1,3 +1,4 @@
+
 import os
 import pandas as pd
 import streamlit as st
@@ -27,6 +28,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 csv_path = os.path.join(BASE_DIR, "data", "candidates.csv")
 st.caption(f"Reading: {csv_path}")
 
+# Refresh
 # Refresh
 if st.button("🔄 Refresh data"):
     st.rerun()

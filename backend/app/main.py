@@ -91,6 +91,11 @@ async def search(criteria: Criteria):
 
             if len(combined_raw) >= TARGET_RESULTS:
                 logger.info(f"Target reached with {len(combined_raw)} candidates")
+
+            combined_raw.extend(raw)
+            combined_raw = dedupe(combined_raw)
+
+            if len(combined_raw) >= TARGET_RESULTS:
                 break
 
         # Step B: rotate broader queries until target reached
